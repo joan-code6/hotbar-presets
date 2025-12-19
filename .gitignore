@@ -1,0 +1,74 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# Gradle wrapper and caches
+.gradle/
+**/build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# Eclipse
+.metadata/
+*.classpath
+*.project
+.settings/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.class
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+run/hs_err_pid*.log
+run/*.log
+logs/
+
+# Minecraft / Fabric development
+run/
+devlibs/
+loom-cache/
+
+# Configuration and local data
+config/
+/.env
+*.keystore
+
+# OS files
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Ignore built/mod jars in project root
+*.jar
+
+# Ignore generated IntelliJ files
+workspace.xml
+
+# Ignore distribution zips
+*.zip
+
+# Node/npm (if used)
+node_modules/
+npm-debug.log
+
+# Misc
+target/
+
