@@ -1,0 +1,13 @@
+{
+  "key.invsorter.open_hotbar_editor": "Hotbar-Editor öffnen",
+  "category.invsorter": "HotbarPresets",
+  "screen.invsorter.hotbar_editor": "Hotbar-Editor",
+  "screen.invsorter.hotbar_editor.name": "Name",
+  "gui.save": "Speichern",
+  "screen.invsorter.main_menu": "Hotbar-Konfigurationen",
+  "screen.invsorter.create_config": "Neue Konfiguration erstellen",
+  "screen.invsorter.manage_configs": "Konfigurationen verwalten",
+  "gui.cancel": "Abbrechen",
+  "screen.invsorter.hotbar_editor.hotkey": "Hotkey",
+  "screen.invsorter.hotbar_editor.waiting": "Taste drücken..."
+}

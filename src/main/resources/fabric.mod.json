@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "inv-sorter",
+  "version": "${version}",
+  "name": "HotbarPresets",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/invsorter/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "de.joancode.invSorter.client.InvSorterDataGenerator"
+    ],
+    "client": [
+      "de.joancode.invSorter.client.InvSorterClient"
+    ],
+    "main": [
+      "de.joancode.invSorter.InvSorter"
+    ]
+  },
+  "mixins": [
+    "inv-sorter.mixins.json",
+    {
+      "config": "inv-sorter.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
