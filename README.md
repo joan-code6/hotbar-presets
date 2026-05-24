@@ -4,6 +4,7 @@ HotbarPresets (previously InvSorter) is a small Fabric client mod that lets you 
 Features
 - Save and load hotbar presets locally.
 - Assign hotkeys to presets or trigger them from the GUI.
+- Optional settings mode to also sort the full main inventory (slots 9-35) when applying a preset.
 - Simple, minimal client-side UI.
 
 Installation

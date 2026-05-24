@@ -10,11 +10,12 @@ import net.minecraft.client.option.KeyBinding.Category;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.ItemStack;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.registry.Registries;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class InvSorterClient implements ClientModInitializer {
@@ -44,6 +45,7 @@ public class InvSorterClient implements ClientModInitializer {
 
         // Load saved configurations at startup
         loadHotbarConfigs();
+        InvSorterSettings.load();
     }
 
     private void checkHotbarHotkeys(MinecraftClient client) {
@@ -88,37 +90,14 @@ public class InvSorterClient implements ClientModInitializer {
     private void applyHotbarConfiguration(HotbarConfig config, MinecraftClient client) {
         if (client.player == null) return;
 
-        // Find matching items in inventory and rearrange hotbar
-        List<ItemStack> targetItems = config.getItems();
-        if (targetItems == null) return; // Safety check
-
-        // Build a mapping of what should go where
-        boolean[] slotProcessed = new boolean[36]; // Track which slots we've already planned to move
-        List<SwapOperation> operations = new ArrayList<>();
-
-        for (int targetSlot = 0; targetSlot < Math.min(targetItems.size(), 9); targetSlot++) {
-            ItemStack targetItem = targetItems.get(targetSlot);
-            if (targetItem == null || targetItem.isEmpty()) continue;
-
-            // Check if the correct item is already in the target slot
-            ItemStack currentItemInSlot = client.player.getInventory().getStack(targetSlot);
-            if (areItemStacksEqual(currentItemInSlot, targetItem)) {
-                System.out.println("[HotbarPresets] Slot " + targetSlot + " already has correct item, skipping");
-                slotProcessed[targetSlot] = true;
-                continue; // Already correct, skip
-            }
-
-            // Find this item in the player's inventory (but not in already processed slots)
-            int sourceSlot = findItemInInventoryExcluding(client.player, targetItem, slotProcessed);
-            if (sourceSlot != -1) {
-                operations.add(new SwapOperation(sourceSlot, targetSlot));
-                slotProcessed[sourceSlot] = true;
-                slotProcessed[targetSlot] = true;
-            }
-        }
+        List<SwapOperation> operations = planOperations(
+                client.player,
+                config,
+                InvSorterSettings.isFullInventorySortModeEnabled()
+        );
 
         if (operations.isEmpty()) {
-            System.out.println("[HotbarPresets] Hotbar already matches configuration!");
+            System.out.println("[HotbarPresets] Inventory already matches requested arrangement!");
             return;
         }
 
@@ -133,6 +112,103 @@ public class InvSorterClient implements ClientModInitializer {
             ItemStack stack = player.getInventory().getStack(i);
             if (areItemStacksEqual(stack, targetItem)) {
                 return i;
+            }
+
+            private static List<SwapOperation> planOperations(ClientPlayerEntity player, HotbarConfig config, boolean fullInventorySortMode) {
+                List<SwapOperation> operations = new ArrayList<>();
+                List<ItemStack> targetItems = config.getItems();
+                if (targetItems == null) return operations;
+
+                List<String> simulatedKeys = new ArrayList<>();
+                for (int i = 0; i < 36; i++) {
+                    simulatedKeys.add(getItemKey(player.getInventory().getStack(i)));
+                }
+
+                boolean[] slotProcessed = new boolean[36];
+
+                for (int targetSlot = 0; targetSlot < Math.min(targetItems.size(), 9); targetSlot++) {
+                    ItemStack targetItem = targetItems.get(targetSlot);
+                    if (targetItem == null || targetItem.isEmpty()) continue;
+
+                    String targetKey = getItemKey(targetItem);
+                    if (targetKey.equals(simulatedKeys.get(targetSlot))) {
+                        slotProcessed[targetSlot] = true;
+                        continue;
+                    }
+
+                    int sourceSlot = findItemInSimulatedInventoryExcluding(simulatedKeys, targetKey, slotProcessed, 0, 35);
+                    if (sourceSlot != -1) {
+                        operations.add(new SwapOperation(sourceSlot, targetSlot));
+                        slotProcessed[sourceSlot] = true;
+                        slotProcessed[targetSlot] = true;
+                        swapSimulatedSlots(simulatedKeys, sourceSlot, targetSlot);
+                    }
+                }
+
+                if (fullInventorySortMode) {
+                    List<String> sortedMainInventory = new ArrayList<>();
+                    for (int i = 9; i < 36; i++) {
+                        String key = simulatedKeys.get(i);
+                        if (!key.isEmpty()) {
+                            sortedMainInventory.add(key);
+                        }
+                    }
+                    sortedMainInventory.sort(Comparator.naturalOrder());
+                    while (sortedMainInventory.size() < 27) {
+                        sortedMainInventory.add("");
+                    }
+
+                    for (int offset = 0; offset < 27; offset++) {
+                        int targetSlot = 9 + offset;
+                        String desiredKey = sortedMainInventory.get(offset);
+                        if (desiredKey.equals(simulatedKeys.get(targetSlot))) {
+                            continue;
+                        }
+
+                        int sourceSlot = findItemInSimulatedInventory(simulatedKeys, desiredKey, targetSlot + 1, 35);
+                        if (sourceSlot == -1) {
+                            sourceSlot = findItemInSimulatedInventory(simulatedKeys, desiredKey, 9, 35);
+                        }
+                        if (sourceSlot != -1 && sourceSlot != targetSlot) {
+                            operations.add(new SwapOperation(sourceSlot, targetSlot));
+                            swapSimulatedSlots(simulatedKeys, sourceSlot, targetSlot);
+                        }
+                    }
+                }
+
+                return operations;
+            }
+
+            private static int findItemInSimulatedInventoryExcluding(List<String> simulatedKeys, String targetKey, boolean[] exclude, int start, int end) {
+                for (int i = start; i <= end; i++) {
+                    if (exclude[i]) continue;
+                    if (targetKey.equals(simulatedKeys.get(i))) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+
+            private static int findItemInSimulatedInventory(List<String> simulatedKeys, String targetKey, int start, int end) {
+                for (int i = start; i <= end; i++) {
+                    if (targetKey.equals(simulatedKeys.get(i))) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+
+            private static void swapSimulatedSlots(List<String> simulatedKeys, int sourceSlot, int targetSlot) {
+                String source = simulatedKeys.get(sourceSlot);
+                simulatedKeys.set(sourceSlot, simulatedKeys.get(targetSlot));
+                simulatedKeys.set(targetSlot, source);
+            }
+
+            private static String getItemKey(ItemStack stack) {
+                if (stack == null || stack.isEmpty()) {
+                    return "";
+                }
+                return Registries.ITEM.getId(stack.getItem()).toString();
             }
         }
 
@@ -290,79 +366,17 @@ public class InvSorterClient implements ClientModInitializer {
             return;
         }
 
-        List<ItemStack> targetItems = config.getItems();
-        if (targetItems == null) return;
-
-        // Build a mapping of what should go where
-        boolean[] slotProcessed = new boolean[36];
-        List<SwapOperation> operations = new ArrayList<>();
-
-        for (int targetSlot = 0; targetSlot < Math.min(targetItems.size(), 9); targetSlot++) {
-            ItemStack targetItem = targetItems.get(targetSlot);
-            if (targetItem == null || targetItem.isEmpty()) continue;
-
-            // Check if the correct item is already in the target slot
-            ItemStack currentItemInSlot = client.player.getInventory().getStack(targetSlot);
-            if (areItemStacksEqualStatic(currentItemInSlot, targetItem)) {
-                System.out.println("[HotbarPresets] Slot " + targetSlot + " already has correct item, skipping");
-                slotProcessed[targetSlot] = true;
-                continue;
-            }
-
-            int sourceSlot = findItemInInventoryStaticExcluding(client.player, targetItem, slotProcessed);
-            if (sourceSlot != -1) {
-                operations.add(new SwapOperation(sourceSlot, targetSlot));
-                slotProcessed[sourceSlot] = true;
-                slotProcessed[targetSlot] = true;
-            }
-        }
+        List<SwapOperation> operations = planOperations(
+                client.player,
+                config,
+                InvSorterSettings.isFullInventorySortModeEnabled()
+        );
 
         if (operations.isEmpty()) {
-            System.out.println("[HotbarPresets] Hotbar already matches configuration!");
+            System.out.println("[HotbarPresets] Inventory already matches requested arrangement!");
             return;
         }
 
         new InvSorterClient().executeSwapOperations(operations, client);
-    }
-
-    private static int findItemInInventoryStaticExcluding(ClientPlayerEntity player, ItemStack targetItem, boolean[] exclude) {
-        for (int i = 0; i < 9; i++) {
-            if (exclude[i]) continue;
-            ItemStack stack = player.getInventory().getStack(i);
-            if (areItemStacksEqualStatic(stack, targetItem)) {
-                return i;
-            }
-        }
-        for (int i = 9; i < 36; i++) {
-            if (exclude[i]) continue;
-            ItemStack stack = player.getInventory().getStack(i);
-            if (areItemStacksEqualStatic(stack, targetItem)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static int findItemInInventoryStatic(ClientPlayerEntity player, ItemStack targetItem) {
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = player.getInventory().getStack(i);
-            if (areItemStacksEqualStatic(stack, targetItem)) {
-                return i;
-            }
-        }
-        for (int i = 9; i < 36; i++) {
-            ItemStack stack = player.getInventory().getStack(i);
-            if (areItemStacksEqualStatic(stack, targetItem)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static boolean areItemStacksEqualStatic(ItemStack stack1, ItemStack stack2) {
-        if (stack1.isEmpty() || stack2.isEmpty()) {
-            return false;
-        }
-        return stack1.getItem() == stack2.getItem();
     }
 }
