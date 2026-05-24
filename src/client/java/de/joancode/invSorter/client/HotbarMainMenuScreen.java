@@ -19,7 +19,7 @@ public class HotbarMainMenuScreen extends Screen {
         int buttonWidth = 180;
         int buttonHeight = 20;
         int spacing = 8;
-        int y = centerY - (buttonHeight * 2 + spacing);
+        int y = centerY - (buttonHeight * 2 + spacing * 2);
 
         // Button: Neue Konfiguration erstellen
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("screen.invsorter.create_config"), btn -> {
@@ -31,10 +31,15 @@ public class HotbarMainMenuScreen extends Screen {
             this.client.setScreen(new HotbarConfigListScreen());
         }).dimensions(centerX - buttonWidth / 2, y + buttonHeight + spacing, buttonWidth, buttonHeight).build());
 
+        // Button: Einstellungen
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("screen.invsorter.open_settings"), btn -> {
+            this.client.setScreen(new HotbarSettingsScreen());
+        }).dimensions(centerX - buttonWidth / 2, y + 2 * (buttonHeight + spacing), buttonWidth, buttonHeight).build());
+
         // Button: Schließen
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.cancel"), btn -> {
             this.close();
-        }).dimensions(centerX - buttonWidth / 2, y + 2 * (buttonHeight + spacing), buttonWidth, buttonHeight).build());
+        }).dimensions(centerX - buttonWidth / 2, y + 3 * (buttonHeight + spacing), buttonWidth, buttonHeight).build());
     }
 
     @Override

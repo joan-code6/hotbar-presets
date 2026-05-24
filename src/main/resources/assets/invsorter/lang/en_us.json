@@ -7,6 +7,11 @@
   "screen.invsorter.main_menu": "Hotbar Configurations",
   "screen.invsorter.create_config": "Create New Configuration",
   "screen.invsorter.manage_configs": "Manage Configurations",
+  "screen.invsorter.open_settings": "Settings",
+  "screen.invsorter.settings": "Settings",
+  "screen.invsorter.mode.full_inventory": "Full inventory sort mode: %s",
+  "screen.invsorter.mode.enabled": "Enabled",
+  "screen.invsorter.mode.disabled": "Disabled",
   "gui.cancel": "Cancel",
   "screen.invsorter.hotbar_editor.hotkey": "Hotkey",
   "screen.invsorter.hotbar_editor.waiting": "Press key..."
