@@ -113,103 +113,6 @@ public class InvSorterClient implements ClientModInitializer {
             if (areItemStacksEqual(stack, targetItem)) {
                 return i;
             }
-
-            private static List<SwapOperation> planOperations(ClientPlayerEntity player, HotbarConfig config, boolean fullInventorySortMode) {
-                List<SwapOperation> operations = new ArrayList<>();
-                List<ItemStack> targetItems = config.getItems();
-                if (targetItems == null) return operations;
-
-                List<String> simulatedKeys = new ArrayList<>();
-                for (int i = 0; i < 36; i++) {
-                    simulatedKeys.add(getItemKey(player.getInventory().getStack(i)));
-                }
-
-                boolean[] slotProcessed = new boolean[36];
-
-                for (int targetSlot = 0; targetSlot < Math.min(targetItems.size(), 9); targetSlot++) {
-                    ItemStack targetItem = targetItems.get(targetSlot);
-                    if (targetItem == null || targetItem.isEmpty()) continue;
-
-                    String targetKey = getItemKey(targetItem);
-                    if (targetKey.equals(simulatedKeys.get(targetSlot))) {
-                        slotProcessed[targetSlot] = true;
-                        continue;
-                    }
-
-                    int sourceSlot = findItemInSimulatedInventoryExcluding(simulatedKeys, targetKey, slotProcessed, 0, 35);
-                    if (sourceSlot != -1) {
-                        operations.add(new SwapOperation(sourceSlot, targetSlot));
-                        slotProcessed[sourceSlot] = true;
-                        slotProcessed[targetSlot] = true;
-                        swapSimulatedSlots(simulatedKeys, sourceSlot, targetSlot);
-                    }
-                }
-
-                if (fullInventorySortMode) {
-                    List<String> sortedMainInventory = new ArrayList<>();
-                    for (int i = 9; i < 36; i++) {
-                        String key = simulatedKeys.get(i);
-                        if (!key.isEmpty()) {
-                            sortedMainInventory.add(key);
-                        }
-                    }
-                    sortedMainInventory.sort(Comparator.naturalOrder());
-                    while (sortedMainInventory.size() < 27) {
-                        sortedMainInventory.add("");
-                    }
-
-                    for (int offset = 0; offset < 27; offset++) {
-                        int targetSlot = 9 + offset;
-                        String desiredKey = sortedMainInventory.get(offset);
-                        if (desiredKey.equals(simulatedKeys.get(targetSlot))) {
-                            continue;
-                        }
-
-                        int sourceSlot = findItemInSimulatedInventory(simulatedKeys, desiredKey, targetSlot + 1, 35);
-                        if (sourceSlot == -1) {
-                            sourceSlot = findItemInSimulatedInventory(simulatedKeys, desiredKey, 9, 35);
-                        }
-                        if (sourceSlot != -1 && sourceSlot != targetSlot) {
-                            operations.add(new SwapOperation(sourceSlot, targetSlot));
-                            swapSimulatedSlots(simulatedKeys, sourceSlot, targetSlot);
-                        }
-                    }
-                }
-
-                return operations;
-            }
-
-            private static int findItemInSimulatedInventoryExcluding(List<String> simulatedKeys, String targetKey, boolean[] exclude, int start, int end) {
-                for (int i = start; i <= end; i++) {
-                    if (exclude[i]) continue;
-                    if (targetKey.equals(simulatedKeys.get(i))) {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-
-            private static int findItemInSimulatedInventory(List<String> simulatedKeys, String targetKey, int start, int end) {
-                for (int i = start; i <= end; i++) {
-                    if (targetKey.equals(simulatedKeys.get(i))) {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-
-            private static void swapSimulatedSlots(List<String> simulatedKeys, int sourceSlot, int targetSlot) {
-                String source = simulatedKeys.get(sourceSlot);
-                simulatedKeys.set(sourceSlot, simulatedKeys.get(targetSlot));
-                simulatedKeys.set(targetSlot, source);
-            }
-
-            private static String getItemKey(ItemStack stack) {
-                if (stack == null || stack.isEmpty()) {
-                    return "";
-                }
-                return Registries.ITEM.getId(stack.getItem()).toString();
-            }
         }
 
         // Check main inventory (slots 9-35)
@@ -222,6 +125,103 @@ public class InvSorterClient implements ClientModInitializer {
         }
 
         return -1; // Item not found
+    }
+
+    private static List<SwapOperation> planOperations(ClientPlayerEntity player, HotbarConfig config, boolean fullInventorySortMode) {
+        List<SwapOperation> operations = new ArrayList<>();
+        List<ItemStack> targetItems = config.getItems();
+        if (targetItems == null) return operations;
+
+        List<String> simulatedKeys = new ArrayList<>();
+        for (int i = 0; i < 36; i++) {
+            simulatedKeys.add(getItemKey(player.getInventory().getStack(i)));
+        }
+
+        boolean[] slotProcessed = new boolean[36];
+
+        for (int targetSlot = 0; targetSlot < Math.min(targetItems.size(), 9); targetSlot++) {
+            ItemStack targetItem = targetItems.get(targetSlot);
+            if (targetItem == null || targetItem.isEmpty()) continue;
+
+            String targetKey = getItemKey(targetItem);
+            if (targetKey.equals(simulatedKeys.get(targetSlot))) {
+                slotProcessed[targetSlot] = true;
+                continue;
+            }
+
+            int sourceSlot = findItemInSimulatedInventoryExcluding(simulatedKeys, targetKey, slotProcessed, 0, 35);
+            if (sourceSlot != -1) {
+                operations.add(new SwapOperation(sourceSlot, targetSlot));
+                slotProcessed[sourceSlot] = true;
+                slotProcessed[targetSlot] = true;
+                swapSimulatedSlots(simulatedKeys, sourceSlot, targetSlot);
+            }
+        }
+
+        if (fullInventorySortMode) {
+            List<String> sortedMainInventory = new ArrayList<>();
+            for (int i = 9; i < 36; i++) {
+                String key = simulatedKeys.get(i);
+                if (!key.isEmpty()) {
+                    sortedMainInventory.add(key);
+                }
+            }
+            sortedMainInventory.sort(Comparator.naturalOrder());
+            while (sortedMainInventory.size() < 27) {
+                sortedMainInventory.add("");
+            }
+
+            for (int offset = 0; offset < 27; offset++) {
+                int targetSlot = 9 + offset;
+                String desiredKey = sortedMainInventory.get(offset);
+                if (desiredKey.equals(simulatedKeys.get(targetSlot))) {
+                    continue;
+                }
+
+                int sourceSlot = findItemInSimulatedInventory(simulatedKeys, desiredKey, targetSlot + 1, 35);
+                if (sourceSlot == -1) {
+                    sourceSlot = findItemInSimulatedInventory(simulatedKeys, desiredKey, 9, 35);
+                }
+                if (sourceSlot != -1 && sourceSlot != targetSlot) {
+                    operations.add(new SwapOperation(sourceSlot, targetSlot));
+                    swapSimulatedSlots(simulatedKeys, sourceSlot, targetSlot);
+                }
+            }
+        }
+
+        return operations;
+    }
+
+    private static int findItemInSimulatedInventoryExcluding(List<String> simulatedKeys, String targetKey, boolean[] exclude, int start, int end) {
+        for (int i = start; i <= end; i++) {
+            if (exclude[i]) continue;
+            if (targetKey.equals(simulatedKeys.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int findItemInSimulatedInventory(List<String> simulatedKeys, String targetKey, int start, int end) {
+        for (int i = start; i <= end; i++) {
+            if (targetKey.equals(simulatedKeys.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static void swapSimulatedSlots(List<String> simulatedKeys, int sourceSlot, int targetSlot) {
+        String source = simulatedKeys.get(sourceSlot);
+        simulatedKeys.set(sourceSlot, simulatedKeys.get(targetSlot));
+        simulatedKeys.set(targetSlot, source);
+    }
+
+    private static String getItemKey(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "";
+        }
+        return Registries.ITEM.getId(stack.getItem()).toString();
     }
 
     private static class SwapOperation {
